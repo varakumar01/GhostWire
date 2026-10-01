@@ -12,6 +12,24 @@
         <item name="android:colorBackground">@color/gw_bg</item>
         <item name="android:windowBackground">@color/gw_bg</item>
         <item name="colorControlNormal">@color/gw_on_surface</item>
+        <item name="materialButtonStyle">@style/GhostWire.Button</item>
+        <item name="materialButtonOutlinedStyle">@style/GhostWire.Button.Outlined</item>
+    </style>
+
+    <!-- Pill buttons: filled coral for primary actions, outlined coral for the rest.
+         Wired as the default button styles above so every fragment picks them up. -->
+    <style name="GhostWire.Button" parent="Widget.MaterialComponents.Button">
+        <item name="cornerRadius">20dp</item>
+        <item name="backgroundTint">?attr/colorPrimary</item>
+        <item name="android:textColor">@color/gw_on_primary</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <style name="GhostWire.Button.Outlined" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="cornerRadius">20dp</item>
+        <item name="strokeColor">?attr/colorPrimary</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
+        <item name="android:textAllCaps">false</item>
     </style>
 
     <!-- Section title at the top of each tab. -->

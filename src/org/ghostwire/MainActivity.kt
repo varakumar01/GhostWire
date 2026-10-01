@@ -16,7 +16,7 @@ import com.google.android.material.tabs.TabLayoutMediator
 class MainActivity : AppCompatActivity() {
 
     private val tabs: List<Pair<String, () -> Fragment>> = listOf(
-        // capabilities registered here
+        "SIM" to { SimFragment() },
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {

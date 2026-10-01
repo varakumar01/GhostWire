@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/sim_info"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textIsSelectable="true"
+            android:paddingBottom="16dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="APDU (hex, basic channel)"
+            android:paddingBottom="4dp" />
+
+        <EditText
+            android:id="@+id/apdu_in"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:inputType="textNoSuggestions"
+            android:hint="00 A4 00 04 02 3F 00" />
+
+        <Button
+            android:id="@+id/apdu_send"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Send APDU" />
+
+        <TextView
+            android:id="@+id/apdu_out"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textIsSelectable="true"
+            android:paddingTop="8dp" />
+    </LinearLayout>
+</ScrollView>

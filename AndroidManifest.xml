@@ -13,6 +13,11 @@
     <!-- SDR tab: enumerate USB-OTG front-ends. -->
     <uses-permission android:name="android.permission.MANAGE_USB" />
     <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+    <!-- Recon tab: cell/neighbor scan + GPS need location (runtime-granted);
+         OpenCelliD tower lookup needs network. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:label="@string/app_name"

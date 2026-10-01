@@ -106,15 +106,21 @@ class WalrusFragment : Fragment() {
 
     // Runs on an NFC binder thread.
     private fun onTag(tag: Tag) {
-        val card = runCatching { NfcCapture.read(tag, keys) }.getOrNull()
+        val card = runCatching {
+            NfcCapture.read(tag, keys) { msg -> activity?.runOnUiThread { status.text = msg } }
+        }.getOrNull()
         activity?.runOnUiThread {
             stopCapture()
             if (card != null) {
                 cards.add(0, card)
                 store.save(cards)
                 adapter.notifyDataSetChanged()
+                status.text = if (card.keys.isNotEmpty())
+                    "saved — recovered ${card.keys.size} sector key(s) from the dictionary"
+                else "${cards.size} card(s) saved"
+            } else {
+                updateStatus()
             }
-            updateStatus()
         }
     }
 

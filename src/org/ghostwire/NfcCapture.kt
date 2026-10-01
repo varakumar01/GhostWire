@@ -39,8 +39,17 @@ import java.util.UUID
  */
 object NfcCapture {
 
-    /** [keys] is the MIFARE Classic dictionary to try (see [Mifare.allKeys]). */
-    fun read(tag: Tag, keys: List<ByteArray> = emptyList()): Card {
+    /**
+     * [keys] is the MIFARE Classic dictionary to try (see [Mifare.allKeys]) — a
+     * dictionary attack is the only key cracking a phone can do (nonce attacks
+     * like nested/darkside need parity/nonce access Android NFC doesn't expose).
+     * [onProgress] is called per sector during the crack.
+     */
+    fun read(
+        tag: Tag,
+        keys: List<ByteArray> = emptyList(),
+        onProgress: ((String) -> Unit)? = null,
+    ): Card {
         val tech = tag.techList.toList()
         val uid = bytesToHex(tag.id)
         var atqa: String? = null
@@ -68,6 +77,7 @@ object NfcCapture {
             runCatching {
                 mc.connect()
                 for (sector in 0 until mc.sectorCount) {
+                    onProgress?.invoke("cracking sector ${sector + 1}/${mc.sectorCount} (${keys.size}-key dict)")
                     var used: String? = null
                     for (k in keys) {
                         if (runCatching { mc.authenticateSectorWithKeyA(sector, k) }.getOrDefault(false)) {

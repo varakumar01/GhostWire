@@ -34,6 +34,13 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Export" />
+
+        <Button
+            android:id="@+id/card_limits"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Limits" />
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView

@@ -66,6 +66,7 @@ class WalrusFragment : Fragment() {
         }
         view.findViewById<Button>(R.id.card_read).setOnClickListener { startCapture() }
         view.findViewById<Button>(R.id.card_export).setOnClickListener { exportCards() }
+        view.findViewById<Button>(R.id.card_limits).setOnClickListener { showLimits() }
         updateStatus()
     }
 
@@ -133,6 +134,29 @@ class WalrusFragment : Fragment() {
         status.text = "exported ${cards.size} card(s) to ${f.absolutePath}"
     }
 
+    private fun showLimits() {
+        val msg = """
+            Phone NFC is 13.56 MHz only. Hard limits:
+
+            • 125 kHz LF cards (HID Prox, EM4100, Indala): impossible on any phone — needs external hardware (Proxmark). [universal]
+
+            • MIFARE Classic read: needs an NXP-class controller. This chip supports it; some (e.g. Broadcom) phones can't read Classic at all. [device-specific]
+
+            • MIFARE Classic key cracking — nested / darkside / hardnested: NOT possible via Android NFC. The API never exposes the nonces/parity those attacks need (auth happens inside the controller). On-device cracking = dictionary only; real nonce attacks need a Proxmark/libnfc reader. [universal to phones]
+
+            • MIFARE Classic emulation (HCE): not supported — needs a secure element. [device-specific]
+
+            • FeliCa (NfcF) block read and full ISO-DEP/EMV depth: vary by device/region.
+
+            Some limits are universal; others depend on this phone's NFC controller and secure element.
+        """.trimIndent()
+        AlertDialog.Builder(requireContext())
+            .setTitle("NFC limits")
+            .setMessage(msg)
+            .setPositiveButton("OK", null)
+            .show()
+    }
+
     private fun showDetail(card: Card) {
         val sb = StringBuilder()
         sb.append("Type:  ${card.typeLabel}\n")
@@ -145,6 +169,10 @@ class WalrusFragment : Fragment() {
             sb.append("\nNDEF:\n")
             card.ndef.forEach { sb.append("  $it\n") }
         }
+        if (card.extra.isNotEmpty()) {
+            sb.append("\nProtocol data:\n")
+            card.extra.forEach { sb.append("  $it\n") }
+        }
         if (card.keys.isNotEmpty()) {
             sb.append("\nKeys found (${card.keys.size} sectors):\n")
             card.keys.toSortedMap().forEach { (s, k) -> sb.append("  sector %2d: %s\n".format(s, k)) }
@@ -154,7 +182,7 @@ class WalrusFragment : Fragment() {
             card.blocks.toSortedMap().forEach { (b, hex) ->
                 sb.append("  %3d: %s".format(b, hex))
                 val bytes = runCatching { Mifare.hexToBytes(hex) }.getOrNull()
-                if (bytes != null) {
+                if (bytes != null && card.techList.contains("MifareClassic")) {
                     if (Mifare.isTrailer(b)) {
                         Mifare.accessCodes(bytes)?.let { c ->
                             sb.append("  [trailer] d0:${Mifare.dataBlockAccess(c[0])}")

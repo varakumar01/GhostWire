@@ -26,6 +26,10 @@ import android.nfc.tech.MifareClassic
 import android.nfc.tech.MifareUltralight
 import android.nfc.tech.Ndef
 import android.nfc.tech.NfcA
+import android.nfc.tech.NfcB
+import android.nfc.tech.NfcBarcode
+import android.nfc.tech.NfcF
+import android.nfc.tech.NfcV
 import java.util.UUID
 
 /**
@@ -58,6 +62,7 @@ object NfcCapture {
         val blocks = LinkedHashMap<Int, String>()
         val foundKeys = LinkedHashMap<Int, String>()
         val ndef = ArrayList<String>()
+        val extra = ArrayList<String>()
 
         MifareClassic.get(tag)?.let { mc ->
             runCatching {
@@ -107,6 +112,48 @@ object NfcCapture {
             runCatching { nd.close() }
         }
 
+        // ISO 15693 (NfcV): read blocks via Read Single Block (0x20).
+        NfcV.get(tag)?.let { v ->
+            runCatching {
+                v.connect()
+                for (blk in 0 until 64) {
+                    val resp = runCatching { v.transceive(byteArrayOf(0x02, 0x20, blk.toByte())) }.getOrNull() ?: break
+                    if (resp.isEmpty() || resp[0].toInt() != 0x00) break // resp[0]=response flags, 0=ok
+                    blocks[blk] = bytesToHex(resp.copyOfRange(1, resp.size))
+                }
+            }
+            runCatching { v.close() }
+        }
+
+        // FeliCa (NfcF): IDm/PMm/system code only — block reads need service codes.
+        NfcF.get(tag)?.let { f ->
+            extra.add("FeliCa IDm: $uid")
+            f.systemCode?.let { extra.add("FeliCa system code: ${bytesToHex(it)}") }
+            f.manufacturer?.let { extra.add("FeliCa PMm: ${bytesToHex(it)}") }
+            extra.add("FeliCa block read needs per-service codes — not attempted (limit).")
+        }
+
+        // ISO 14443-4 (IsoDep): EMV + DESFire probes over APDU.
+        IsoDep.get(tag)?.let { iso ->
+            runCatching {
+                iso.connect()
+                emvProbe(iso, extra)
+                desfireProbe(iso, extra)
+            }
+            runCatching { iso.close() }
+        }
+
+        // ISO 14443-B: no generic read, just the identifiers the stack exposes.
+        NfcB.get(tag)?.let { b ->
+            b.applicationData?.let { extra.add("ISO 14443-B app data: ${bytesToHex(it)}") }
+            b.protocolInfo?.let { extra.add("ISO 14443-B protocol info: ${bytesToHex(it)}") }
+        }
+
+        // Kovio / NFC Barcode: a fixed read-only payload.
+        NfcBarcode.get(tag)?.let { bc ->
+            runCatching { extra.add("NFC Barcode (type ${bc.type}): ${bytesToHex(bc.barcode)}") }
+        }
+
         val type = Card.typeFor(sakInt, atqaInt, tech)
         return Card(
             id = UUID.randomUUID().toString(),
@@ -114,8 +161,65 @@ object NfcCapture {
             timestamp = System.currentTimeMillis(),
             techList = tech.map { it.substringAfterLast('.') },
             uid = uid, atqa = atqa, sak = sak, ats = ats,
-            typeLabel = type, blocks = blocks, ndef = ndef, keys = foundKeys,
+            typeLabel = type, blocks = blocks, ndef = ndef, keys = foundKeys, extra = extra,
         )
+    }
+
+    /** EMV contactless probe: SELECT PPSE, list the application AIDs. */
+    private fun emvProbe(iso: IsoDep, extra: MutableList<String>) {
+        // SELECT 2PAY.SYS.DDF01
+        val ppse = Mifare.hexToBytes("00A404000E325041592E5359532E444446303100")
+        val r = runCatching { iso.transceive(ppse) }.getOrNull() ?: return
+        if (!endsWith(r, 0x90, 0x00)) return
+        val aids = findTag(r, 0x4F)
+        if (aids.isEmpty()) return
+        extra.add("EMV contactless card:")
+        aids.forEach { extra.add("  AID: ${bytesToHex(it)}") }
+        extra.add("  PAN/expiry read needs the full GPO + record flow — not attempted (limit).")
+    }
+
+    /** MIFARE DESFire probe: GetVersion + GetApplicationIDs (wrapped native commands). */
+    private fun desfireProbe(iso: IsoDep, extra: MutableList<String>) {
+        var r = runCatching { iso.transceive(Mifare.hexToBytes("9060000000")) }.getOrNull() ?: return
+        if (r.size < 2) return
+        val sw1 = r[r.size - 2].toInt() and 0xFF
+        val sw2 = r[r.size - 1].toInt() and 0xFF
+        if (sw1 != 0x91 || (sw2 != 0xAF && sw2 != 0x00)) return // not DESFire
+        extra.add("MIFARE DESFire:")
+        val ver = ArrayList<Byte>()
+        ver.addAll(r.dropLast(2))
+        var guard = 0
+        while ((r[r.size - 1].toInt() and 0xFF) == 0xAF && guard++ < 5) {
+            r = runCatching { iso.transceive(Mifare.hexToBytes("90AF000000")) }.getOrNull() ?: break
+            if (r.size < 2) break
+            ver.addAll(r.dropLast(2))
+        }
+        extra.add("  version/UID: ${bytesToHex(ver.toByteArray())}")
+        val apps = runCatching { iso.transceive(Mifare.hexToBytes("906A000000")) }.getOrNull()
+        if (apps != null && apps.size > 2) {
+            extra.add("  application IDs: ${bytesToHex(apps.copyOfRange(0, apps.size - 2))}")
+        }
+    }
+
+    private fun endsWith(r: ByteArray, sw1: Int, sw2: Int): Boolean =
+        r.size >= 2 && (r[r.size - 2].toInt() and 0xFF) == sw1 && (r[r.size - 1].toInt() and 0xFF) == sw2
+
+    /** Scan a TLV blob for every value carrying the given 1-byte tag (length 5..16). */
+    private fun findTag(data: ByteArray, tag: Int): List<ByteArray> {
+        val out = ArrayList<ByteArray>()
+        var i = 0
+        while (i + 1 < data.size) {
+            if ((data[i].toInt() and 0xFF) == tag) {
+                val len = data[i + 1].toInt() and 0xFF
+                if (len in 5..16 && i + 2 + len <= data.size) {
+                    out.add(data.copyOfRange(i + 2, i + 2 + len))
+                    i += 2 + len
+                    continue
+                }
+            }
+            i++
+        }
+        return out
     }
 
     private fun describeNdef(rec: NdefRecord): String {

@@ -61,7 +61,7 @@ class WalrusFragment : Fragment() {
         nfc = NfcAdapter.getDefaultAdapter(requireContext())
         status = view.findViewById(R.id.walrus_status)
 
-        adapter = CardAdapter(cards) { showDetail(it) }
+        adapter = CardAdapter(cards, onClick = { showDetail(it) }, onWrite = { startWrite(it) })
         view.findViewById<RecyclerView>(R.id.card_list).also {
             it.layoutManager = LinearLayoutManager(requireContext())
             it.adapter = adapter
@@ -263,15 +263,18 @@ class WalrusFragment : Fragment() {
     }
 }
 
-/** Walrus-style card list: name header, logo, human-readable info band. */
+/** Walrus-style card list: name header, logo, human-readable info band, and a
+ *  right-edge write-to-tag button. */
 class CardAdapter(
     private val items: List<Card>,
     private val onClick: (Card) -> Unit,
+    private val onWrite: (Card) -> Unit,
 ) : RecyclerView.Adapter<CardAdapter.VH>() {
 
     class VH(v: View) : RecyclerView.ViewHolder(v) {
         val name: TextView = v.findViewById(R.id.card_name)
         val info: TextView = v.findViewById(R.id.card_info)
+        val write: View = v.findViewById(R.id.card_write)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH =
@@ -284,5 +287,6 @@ class CardAdapter(
         h.name.text = c.name
         h.info.text = "${c.typeLabel}\nUID ${c.uid}"
         h.itemView.setOnClickListener { onClick(c) }
+        h.write.setOnClickListener { onWrite(c) }
     }
 }

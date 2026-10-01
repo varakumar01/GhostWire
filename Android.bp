@@ -1,5 +1,14 @@
 // GhostWire — independent, self-contained pentest app.
 // Included in a ROM via its own ghostwire.mk; not tied to any device tree.
+
+// Vendored osmdroid (OSM map view) — AOSP ships no prebuilt; the AAR is kept
+// under libs/. osmdroid-android 6.1.x has no transitive compile deps.
+android_library_import {
+    name: "ghostwire-osmdroid-android",
+    aars: ["libs/osmdroid-android-6.1.20.aar"],
+    sdk_version: "current",
+}
+
 android_app {
     name: "GhostWire",
     srcs: ["src/**/*.kt"],
@@ -23,5 +32,6 @@ android_app {
         "androidx.viewpager2_viewpager2",
         "androidx.recyclerview_recyclerview",
         "com.google.android.material_material",
+        "ghostwire-osmdroid-android",
     ],
 }

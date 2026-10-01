@@ -51,6 +51,7 @@ class MainActivity : AppCompatActivity() {
             "Recon" to { ReconFragment() },
             "Guard" to { GuardFragment() },
             "Walk" to { WalkFragment() },
+            "Map" to { MapFragment() },
             "DIAG" to { DiagFragment() },
         ),
         "NFC" to listOf("Walrus" to { WalrusFragment() }),

@@ -71,6 +71,7 @@ class WalkFragment : Fragment() {
             walking = false
             handler.removeCallbacksAndMessages(null)
             btn.text = "Start walk"
+            RouteStore(requireContext()).save(samples) // let the Map tab draw it
             out.text = report(Walk.estimate(samples))
             return
         }

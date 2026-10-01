@@ -336,6 +336,7 @@ class CardAdapter(
 
     class VH(v: View) : RecyclerView.ViewHolder(v) {
         val name: TextView = v.findViewById(R.id.card_name)
+        val type: TextView = v.findViewById(R.id.card_type)
         val info: TextView = v.findViewById(R.id.card_info)
         val write: View = v.findViewById(R.id.card_write)
     }
@@ -348,7 +349,8 @@ class CardAdapter(
     override fun onBindViewHolder(h: VH, position: Int) {
         val c = items[position]
         h.name.text = c.name
-        h.info.text = "${c.typeLabel}\nUID ${c.uid}"
+        h.type.text = c.typeLabel
+        h.info.text = "UID ${c.uid}"
         h.itemView.setOnClickListener { onClick(c) }
         h.write.setOnClickListener { onWrite(c) }
     }

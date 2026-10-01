@@ -27,6 +27,7 @@ class WalrusFragment : Fragment() {
     private lateinit var adapter: CardAdapter
     private lateinit var status: TextView
     private var nfc: NfcAdapter? = null
+    private var keys: List<ByteArray> = emptyList()
     @Volatile private var capturing = false
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, s: Bundle?): View =
@@ -35,6 +36,7 @@ class WalrusFragment : Fragment() {
     override fun onViewCreated(view: View, s: Bundle?) {
         store = CardStore(requireContext())
         cards.addAll(store.load())
+        keys = Mifare.allKeys(requireContext())
         nfc = NfcAdapter.getDefaultAdapter(requireContext())
         status = view.findViewById(R.id.walrus_status)
 
@@ -84,7 +86,7 @@ class WalrusFragment : Fragment() {
 
     // Runs on an NFC binder thread.
     private fun onTag(tag: Tag) {
-        val card = runCatching { NfcCapture.read(tag) }.getOrNull()
+        val card = runCatching { NfcCapture.read(tag, keys) }.getOrNull()
         activity?.runOnUiThread {
             stopCapture()
             if (card != null) {
@@ -124,9 +126,27 @@ class WalrusFragment : Fragment() {
             sb.append("\nNDEF:\n")
             card.ndef.forEach { sb.append("  $it\n") }
         }
+        if (card.keys.isNotEmpty()) {
+            sb.append("\nKeys found (${card.keys.size} sectors):\n")
+            card.keys.toSortedMap().forEach { (s, k) -> sb.append("  sector %2d: %s\n".format(s, k)) }
+        }
         if (card.blocks.isNotEmpty()) {
             sb.append("\nBlocks (${card.blocks.size} read):\n")
-            card.blocks.toSortedMap().forEach { (b, hex) -> sb.append("  %3d: %s\n".format(b, hex)) }
+            card.blocks.toSortedMap().forEach { (b, hex) ->
+                sb.append("  %3d: %s".format(b, hex))
+                val bytes = runCatching { Mifare.hexToBytes(hex) }.getOrNull()
+                if (bytes != null) {
+                    if (Mifare.isTrailer(b)) {
+                        Mifare.accessCodes(bytes)?.let { c ->
+                            sb.append("  [trailer] d0:${Mifare.dataBlockAccess(c[0])}")
+                            sb.append(if (Mifare.keyBReadable(c[3])) "; keyB readable" else "; keyB protected")
+                        }
+                    } else {
+                        Mifare.valueOf(bytes)?.let { sb.append("  [value=$it]") }
+                    }
+                }
+                sb.append('\n')
+            }
         }
         AlertDialog.Builder(requireContext())
             .setTitle(card.name)

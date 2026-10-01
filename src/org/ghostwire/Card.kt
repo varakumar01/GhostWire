@@ -20,6 +20,7 @@ data class Card(
     val typeLabel: String,
     val blocks: Map<Int, String>,
     val ndef: List<String>,
+    val keys: Map<Int, String> = emptyMap(), // sector -> "A <hex>" / "B <hex>" found
     var notes: String = "",
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
@@ -34,6 +35,7 @@ data class Card(
         put("typeLabel", typeLabel)
         put("blocks", JSONObject().also { b -> blocks.forEach { (k, v) -> b.put(k.toString(), v) } })
         put("ndef", JSONArray(ndef))
+        put("keys", JSONObject().also { j -> keys.forEach { (k, v) -> j.put(k.toString(), v) } })
         put("notes", notes)
     }
 
@@ -45,11 +47,13 @@ data class Card(
             o.optJSONObject("blocks")?.let { bj -> bj.keys().forEach { k -> blocks[k.toInt()] = bj.getString(k) } }
             val ndef = ArrayList<String>()
             o.optJSONArray("ndef")?.let { for (i in 0 until it.length()) ndef.add(it.getString(i)) }
+            val keys = HashMap<Int, String>()
+            o.optJSONObject("keys")?.let { kj -> kj.keys().forEach { k -> keys[k.toInt()] = kj.getString(k) } }
             return Card(
                 o.getString("id"), o.optString("name"), o.getLong("timestamp"),
                 tech, o.optString("uid"),
                 o.strOrNull("atqa"), o.strOrNull("sak"), o.strOrNull("ats"),
-                o.optString("typeLabel"), blocks, ndef, o.optString("notes"),
+                o.optString("typeLabel"), blocks, ndef, keys, o.optString("notes"),
             )
         }
 

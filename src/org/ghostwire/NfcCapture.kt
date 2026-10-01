@@ -16,12 +16,8 @@ import java.util.UUID
  */
 object NfcCapture {
 
-    private val DEFAULT_KEYS = listOf(
-        "FFFFFFFFFFFF", "A0A1A2A3A4A5", "D3F7D3F7D3F7", "000000000000",
-        "B0B1B2B3B4B5", "4D3A99C351DD", "1A982C7E459A", "AABBCCDDEEFF",
-    ).map { hexToBytes(it) }
-
-    fun read(tag: Tag): Card {
+    /** [keys] is the MIFARE Classic dictionary to try (see [Mifare.allKeys]). */
+    fun read(tag: Tag, keys: List<ByteArray> = emptyList()): Card {
         val tech = tag.techList.toList()
         val uid = bytesToHex(tag.id)
         var atqa: String? = null
@@ -41,17 +37,24 @@ object NfcCapture {
         IsoDep.get(tag)?.historicalBytes?.let { ats = bytesToHex(it) }
 
         val blocks = LinkedHashMap<Int, String>()
+        val foundKeys = LinkedHashMap<Int, String>()
         val ndef = ArrayList<String>()
 
         MifareClassic.get(tag)?.let { mc ->
             runCatching {
                 mc.connect()
                 for (sector in 0 until mc.sectorCount) {
-                    val authed = DEFAULT_KEYS.any { k ->
-                        runCatching { mc.authenticateSectorWithKeyA(sector, k) }.getOrDefault(false) ||
-                            runCatching { mc.authenticateSectorWithKeyB(sector, k) }.getOrDefault(false)
+                    var used: String? = null
+                    for (k in keys) {
+                        if (runCatching { mc.authenticateSectorWithKeyA(sector, k) }.getOrDefault(false)) {
+                            used = "A ${bytesToHex(k)}"; break
+                        }
+                        if (runCatching { mc.authenticateSectorWithKeyB(sector, k) }.getOrDefault(false)) {
+                            used = "B ${bytesToHex(k)}"; break
+                        }
                     }
-                    if (!authed) continue
+                    if (used == null) continue
+                    foundKeys[sector] = used
                     val first = mc.sectorToBlock(sector)
                     for (b in first until first + mc.getBlockCountInSector(sector)) {
                         runCatching { blocks[b] = bytesToHex(mc.readBlock(b)) }
@@ -92,7 +95,7 @@ object NfcCapture {
             timestamp = System.currentTimeMillis(),
             techList = tech.map { it.substringAfterLast('.') },
             uid = uid, atqa = atqa, sak = sak, ats = ats,
-            typeLabel = type, blocks = blocks, ndef = ndef,
+            typeLabel = type, blocks = blocks, ndef = ndef, keys = foundKeys,
         )
     }
 
@@ -122,5 +125,4 @@ object NfcCapture {
     }
 
     fun bytesToHex(b: ByteArray): String = b.joinToString("") { "%02X".format(it) }
-    private fun hexToBytes(s: String) = ByteArray(s.length / 2) { s.substring(it * 2, it * 2 + 2).toInt(16).toByte() }
 }

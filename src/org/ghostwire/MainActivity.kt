@@ -20,40 +20,92 @@
 package org.ghostwire
 
 import android.os.Bundle
+import android.view.View
+import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
+import com.google.android.material.navigation.NavigationView
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 
 /**
- * GhostWire shell: a tabbed host. Each capability is one entry in [tabs] — a
- * title and a fragment factory. Adding a capability = adding one line here plus
- * its fragment, nothing else.
+ * GhostWire shell: a domain sidebar over a tabbed host. Each domain in [domains]
+ * owns a list of tabs (title + fragment factory); the ☰ button opens the sidebar,
+ * picking a domain swaps the top tabs to that domain's. Adding a capability =
+ * adding one line to the right domain here plus its fragment, nothing else.
  */
 class MainActivity : AppCompatActivity() {
 
-    private val tabs: List<Pair<String, () -> Fragment>> = listOf(
-        "SIM" to { SimFragment() },
-        "Recon" to { ReconFragment() },
-        "Guard" to { GuardFragment() },
-        "Walk" to { WalkFragment() },
-        "DIAG" to { DiagFragment() },
-        "SDR" to { SdrFragment() },
-        "Walrus" to { WalrusFragment() },
+    // Keys line up with the item ids in res/menu/domains.xml (see domainFor()).
+    private val domains: Map<String, List<Pair<String, () -> Fragment>>> = linkedMapOf(
+        "Cellular" to listOf(
+            "SIM" to { SimFragment() },
+            "Recon" to { ReconFragment() },
+            "Guard" to { GuardFragment() },
+            "Walk" to { WalkFragment() },
+            "DIAG" to { DiagFragment() },
+        ),
+        "NFC" to listOf("Walrus" to { WalrusFragment() }),
+        "SDR Labs" to listOf("SDR" to { SdrFragment() }),
+        "Wi-Fi" to listOf("Wi-Fi" to { PlaceholderFragment("Wi-Fi — coming soon") }),
     )
+
+    private lateinit var drawer: DrawerLayout
+    private lateinit var pager: ViewPager2
+    private lateinit var tabLayout: TabLayout
+    private var mediator: TabLayoutMediator? = null
+    private var tabs: List<Pair<String, () -> Fragment>> = domains.values.first()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val pager = findViewById<ViewPager2>(R.id.pager)
+        drawer = findViewById(R.id.drawer)
+        pager = findViewById(R.id.pager)
+        tabLayout = findViewById(R.id.tabs)
+
+        findViewById<ImageButton>(R.id.open_domains).setOnClickListener {
+            drawer.openDrawer(GravityCompat.START)
+        }
+        findViewById<NavigationView>(R.id.domains).also { nav ->
+            nav.setCheckedItem(R.id.domain_cellular)
+            nav.setNavigationItemSelectedListener { item ->
+                domainFor(item.itemId)?.let { showDomain(it) }
+                drawer.closeDrawer(GravityCompat.START)
+                true
+            }
+        }
+        showDomain(domains.keys.first())
+    }
+
+    override fun onBackPressed() {
+        if (drawer.isDrawerOpen(GravityCompat.START)) drawer.closeDrawer(GravityCompat.START)
+        else super.onBackPressed()
+    }
+
+    private fun domainFor(itemId: Int): String? = when (itemId) {
+        R.id.domain_cellular -> "Cellular"
+        R.id.domain_nfc -> "NFC"
+        R.id.domain_sdr -> "SDR Labs"
+        R.id.domain_wifi -> "Wi-Fi"
+        else -> null
+    }
+
+    private fun showDomain(name: String) {
+        tabs = domains[name] ?: return
+        mediator?.detach()
         pager.adapter = object : FragmentStateAdapter(this) {
             override fun getItemCount() = tabs.size
             override fun createFragment(position: Int) = tabs[position].second()
         }
-        val tabLayout = findViewById<TabLayout>(R.id.tabs)
-        TabLayoutMediator(tabLayout, pager) { tab, pos -> tab.text = tabs[pos].first }.attach()
+        // A single tab reads better centered than scrolled hard-left.
+        tabLayout.tabMode = if (tabs.size > 1) TabLayout.MODE_SCROLLABLE else TabLayout.MODE_FIXED
+        tabLayout.visibility = if (tabs.size > 1) View.VISIBLE else View.GONE
+        mediator = TabLayoutMediator(tabLayout, pager) { tab, pos -> tab.text = tabs[pos].first }
+            .also { it.attach() }
     }
 }

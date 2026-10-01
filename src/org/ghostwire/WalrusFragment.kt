@@ -28,6 +28,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
@@ -48,6 +49,7 @@ class WalrusFragment : Fragment() {
     private var nfc: NfcAdapter? = null
     private var keys: List<ByteArray> = emptyList()
     @Volatile private var capturing = false
+    @Volatile private var writeTarget: Card? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, s: Bundle?): View =
         inflater.inflate(R.layout.fragment_walrus, container, false)
@@ -79,14 +81,21 @@ class WalrusFragment : Fragment() {
         status.text = when {
             nfc == null -> "NFC not available on this device"
             nfc?.isEnabled == false -> "NFC is off — enable it in system settings"
+            writeTarget != null -> "Hold a blank/writable tag to the phone to write \"${writeTarget?.name}\"…"
             capturing -> "Tap a card to the phone…"
             else -> "${cards.size} card(s) saved"
         }
     }
 
-    private fun startCapture() {
+    private fun startCapture() = startReaderMode(target = null)
+
+    /** Arms write mode: the next tag tapped gets [card]'s data written to it. */
+    private fun startWrite(card: Card) = startReaderMode(target = card)
+
+    private fun startReaderMode(target: Card?) {
         val a = nfc ?: return updateStatus()
         if (!a.isEnabled) return updateStatus()
+        writeTarget = target
         capturing = true
         updateStatus()
         a.enableReaderMode(
@@ -102,10 +111,21 @@ class WalrusFragment : Fragment() {
             capturing = false
             runCatching { nfc?.disableReaderMode(requireActivity()) }
         }
+        writeTarget = null
     }
 
     // Runs on an NFC binder thread.
     private fun onTag(tag: Tag) {
+        val target = writeTarget
+        if (target != null) {
+            val result = runCatching { NfcCapture.write(tag, target) }
+                .getOrElse { "write failed: ${it.message}" }
+            activity?.runOnUiThread {
+                stopCapture()
+                status.text = result
+            }
+            return
+        }
         val card = runCatching {
             NfcCapture.read(tag, keys) { msg -> activity?.runOnUiThread { status.text = msg } }
         }.getOrNull()
@@ -163,7 +183,7 @@ class WalrusFragment : Fragment() {
             .show()
     }
 
-    private fun showDetail(card: Card) {
+    private fun detailText(card: Card): String {
         val sb = StringBuilder()
         sb.append("Type:  ${card.typeLabel}\n")
         sb.append("UID:   ${card.uid}\n")
@@ -201,17 +221,45 @@ class WalrusFragment : Fragment() {
                 sb.append('\n')
             }
         }
-        AlertDialog.Builder(requireContext())
-            .setTitle(card.name)
-            .setMessage(sb.toString())
-            .setPositiveButton("Close", null)
-            .setNeutralButton("Delete") { _, _ ->
-                cards.remove(card)
-                store.save(cards)
-                adapter.notifyDataSetChanged()
-                updateStatus()
-            }
-            .show()
+        return sb.toString()
+    }
+
+    /** Card detail/edit dialog: editable name + notes, a copy button on the
+     *  read-only technical dump, and a write-to-tag action. */
+    private fun showDetail(card: Card) {
+        val view = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_card_detail, null)
+        val nameField = view.findViewById<EditText>(R.id.detail_name)
+        val notesField = view.findViewById<EditText>(R.id.detail_notes)
+        val info = view.findViewById<TextView>(R.id.detail_info)
+        nameField.setText(card.name)
+        notesField.setText(card.notes)
+        info.text = detailText(card)
+
+        val dialog = AlertDialog.Builder(requireContext())
+            .setView(view)
+            .setNegativeButton("Close", null)
+            .create()
+
+        view.findViewById<Button>(R.id.detail_copy).copyOnClick(info)
+        view.findViewById<Button>(R.id.detail_save).setOnClickListener {
+            card.name = nameField.text.toString().ifBlank { card.name }
+            card.notes = notesField.text.toString()
+            store.save(cards)
+            adapter.notifyDataSetChanged()
+            dialog.dismiss()
+        }
+        view.findViewById<Button>(R.id.detail_delete).setOnClickListener {
+            cards.remove(card)
+            store.save(cards)
+            adapter.notifyDataSetChanged()
+            updateStatus()
+            dialog.dismiss()
+        }
+        view.findViewById<Button>(R.id.detail_write).setOnClickListener {
+            dialog.dismiss()
+            startWrite(card)
+        }
+        dialog.show()
     }
 }
 

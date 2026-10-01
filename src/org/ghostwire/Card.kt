@@ -42,6 +42,7 @@ data class Card(
     val keys: Map<Int, String> = emptyMap(), // sector -> "A <hex>" / "B <hex>" found
     val extra: List<String> = emptyList(),   // protocol-specific findings (EMV/DESFire/FeliCa/…)
     var notes: String = "",
+    val ndefRaw: String? = null, // raw NdefMessage bytes (hex) — lets write() replay it verbatim
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
         put("id", id)
@@ -58,6 +59,7 @@ data class Card(
         put("keys", JSONObject().also { j -> keys.forEach { (k, v) -> j.put(k.toString(), v) } })
         put("extra", JSONArray(extra))
         put("notes", notes)
+        put("ndefRaw", ndefRaw ?: JSONObject.NULL)
     }
 
     companion object {
@@ -77,6 +79,7 @@ data class Card(
                 tech, o.optString("uid"),
                 o.strOrNull("atqa"), o.strOrNull("sak"), o.strOrNull("ats"),
                 o.optString("typeLabel"), blocks, ndef, keys, extra, o.optString("notes"),
+                o.strOrNull("ndefRaw"),
             )
         }
 

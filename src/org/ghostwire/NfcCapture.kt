@@ -19,6 +19,7 @@
 
 package org.ghostwire
 
+import android.nfc.NdefMessage
 import android.nfc.NdefRecord
 import android.nfc.Tag
 import android.nfc.tech.IsoDep
@@ -114,10 +115,13 @@ object NfcCapture {
             runCatching { mu.close() }
         }
 
+        var ndefRaw: String? = null
         Ndef.get(tag)?.let { nd ->
             runCatching {
                 nd.connect()
-                (nd.ndefMessage ?: nd.cachedNdefMessage)?.records?.forEach { ndef.add(describeNdef(it)) }
+                val msg = nd.ndefMessage ?: nd.cachedNdefMessage
+                msg?.records?.forEach { ndef.add(describeNdef(it)) }
+                msg?.let { ndefRaw = bytesToHex(it.toByteArray()) }
             }
             runCatching { nd.close() }
         }
@@ -172,7 +176,78 @@ object NfcCapture {
             techList = tech.map { it.substringAfterLast('.') },
             uid = uid, atqa = atqa, sak = sak, ats = ats,
             typeLabel = type, blocks = blocks, ndef = ndef, keys = foundKeys, extra = extra,
+            ndefRaw = ndefRaw,
         )
+    }
+
+    /**
+     * Writes a captured [card] back onto a blank/writable [tag] — the
+     * write-back half of the card wallet. MIFARE Classic: re-authenticates
+     * each sector with the key the card was *read* with (never tries a key
+     * it doesn't have) and rewrites that sector's data blocks; trailers
+     * (keys/access bits) are never touched, so this can't brick the tag's
+     * own keys. MIFARE Ultralight: rewrites pages 4+ (0-3 are UID/lock/OTP,
+     * never written). NDEF: replays the original message if the target is
+     * NDEF-writable and big enough. Never throws — a partial write is still
+     * reported, not swallowed.
+     */
+    fun write(tag: Tag, card: Card): String {
+        var wrote = 0
+        var skipped = 0
+        var failed = 0
+        val notes = StringBuilder()
+
+        MifareClassic.get(tag)?.let { mc ->
+            if (!runCatching { mc.connect() }.isSuccess) {
+                notes.append("MIFARE Classic: could not connect\n")
+            } else {
+                for ((block, hex) in card.blocks.toSortedMap()) {
+                    if (Mifare.isTrailer(block)) { skipped++; continue }
+                    val sector = runCatching { mc.blockToSector(block) }.getOrNull()
+                    val keyHex = sector?.let { card.keys[it] }
+                    val key = keyHex?.let { runCatching { Mifare.hexToBytes(it.substring(2)) }.getOrNull() }
+                    val authed = sector != null && key != null && when (keyHex[0]) {
+                        'A' -> runCatching { mc.authenticateSectorWithKeyA(sector, key) }.getOrDefault(false)
+                        'B' -> runCatching { mc.authenticateSectorWithKeyB(sector, key) }.getOrDefault(false)
+                        else -> false
+                    }
+                    if (!authed) { skipped++; continue }
+                    if (runCatching { mc.writeBlock(block, Mifare.hexToBytes(hex)) }.isSuccess) wrote++ else failed++
+                }
+                runCatching { mc.close() }
+            }
+        }
+
+        MifareUltralight.get(tag)?.let { mu ->
+            if (!runCatching { mu.connect() }.isSuccess) {
+                notes.append("MIFARE Ultralight: could not connect\n")
+            } else {
+                for ((page, hex) in card.blocks.toSortedMap()) {
+                    if (page < 4) { skipped++; continue } // UID/lock/OTP — never written
+                    if (runCatching { mu.writePage(page, Mifare.hexToBytes(hex)) }.isSuccess) wrote++ else failed++
+                }
+                runCatching { mu.close() }
+            }
+        }
+
+        card.ndefRaw?.let { hex ->
+            Ndef.get(tag)?.let { nd ->
+                runCatching { nd.connect() }
+                val msg = runCatching { NdefMessage(Mifare.hexToBytes(hex)) }.getOrNull()
+                when {
+                    msg == null -> notes.append("NDEF: stored message is corrupt\n")
+                    !nd.isWritable -> notes.append("NDEF: tag is not writable\n")
+                    nd.maxSize < msg.toByteArray().size -> notes.append("NDEF: message too large for this tag\n")
+                    runCatching { nd.writeNdefMessage(msg) }.isSuccess ->
+                        notes.append("NDEF message written (${msg.toByteArray().size} bytes)\n")
+                    else -> notes.append("NDEF: write failed\n")
+                }
+                runCatching { nd.close() }
+            }
+        }
+
+        notes.append("wrote $wrote block(s), skipped $skipped (trailer/UID or no key), $failed failed")
+        return notes.toString()
     }
 
     /** EMV contactless probe: SELECT PPSE, list the application AIDs. */

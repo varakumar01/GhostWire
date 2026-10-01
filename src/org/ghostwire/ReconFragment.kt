@@ -34,6 +34,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import java.io.BufferedWriter
@@ -55,6 +56,9 @@ class ReconFragment : Fragment() {
     @Volatile private var tracing = false
     private var traceWriter: BufferedWriter? = null
 
+    private val locationPerm =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, s: Bundle?): View =
         inflater.inflate(R.layout.fragment_recon, container, false)
 
@@ -64,9 +68,7 @@ class ReconFragment : Fragment() {
         keyField = view.findViewById(R.id.recon_key)
         keyField.setText(prefs().getString("opencellid_key", ""))
 
-        if (!hasLocation()) requestPermissions(
-            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1
-        )
+        if (!hasLocation()) locationPerm.launch(Manifest.permission.ACCESS_FINE_LOCATION)
 
         action(view, R.id.recon_cells) { dumpCells() }
         action(view, R.id.recon_sim) { dumpSim() }

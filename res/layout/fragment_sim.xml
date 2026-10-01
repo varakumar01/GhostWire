@@ -66,11 +66,24 @@
         android:inputType="textNoSuggestions"
         android:hint="00 A4 00 04 02 3F 00" />
 
-    <Button
-        android:id="@+id/apdu_send"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Send APDU" />
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/apdu_send"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Send APDU" />
+
+        <Button
+            android:id="@+id/apdu_copy"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Copy" />
+    </LinearLayout>
 
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"

@@ -17,11 +17,24 @@
         android:text="Rogue-cell indicators from telephony data. Indicators, not proof — benign causes exist."
         android:paddingBottom="12dp" />
 
-    <Button
-        android:id="@+id/guard_scan"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Scan for anomalies" />
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/guard_scan"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Scan for anomalies" />
+
+        <Button
+            android:id="@+id/guard_copy"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Copy" />
+    </LinearLayout>
 
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"

@@ -51,6 +51,7 @@ class SimFragment : Fragment() {
         session = SimSession(tm)
         out = view.findViewById(R.id.apdu_out)
         channelView = view.findViewById(R.id.sim_channel)
+        view.findViewById<Button>(R.id.apdu_copy).copyOnClick(out)
 
         view.findViewById<TextView>(R.id.sim_info).text = buildString {
             append("IMSI:     ").append(safe { tm.subscriberId }).append('\n')

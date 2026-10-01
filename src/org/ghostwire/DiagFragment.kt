@@ -44,6 +44,7 @@ class DiagFragment : Fragment() {
         out = view.findViewById(R.id.diag_out)
         action(view, R.id.diag_status) { diagStatus() }
         action(view, R.id.diag_capture) { rawCapture() }
+        view.findViewById<Button>(R.id.diag_copy).copyOnClick(out)
     }
 
     private fun action(view: View, id: Int, block: () -> String) {

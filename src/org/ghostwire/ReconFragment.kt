@@ -74,6 +74,7 @@ class ReconFragment : Fragment() {
         view.findViewById<Button>(R.id.recon_trace).also { b ->
             b.setOnClickListener { toggleTrace(b) }
         }
+        view.findViewById<Button>(R.id.recon_copy).copyOnClick(out)
     }
 
     override fun onDestroyView() {

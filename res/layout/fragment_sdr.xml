@@ -11,11 +11,24 @@
         android:text="SDR"
         style="@style/GhostWire.Header" />
 
-    <Button
-        android:id="@+id/sdr_scan"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Scan USB for SDR" />
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/sdr_scan"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Scan USB for SDR" />
+
+        <Button
+            android:id="@+id/sdr_copy"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Copy" />
+    </LinearLayout>
 
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"

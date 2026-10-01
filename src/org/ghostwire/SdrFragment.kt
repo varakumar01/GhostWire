@@ -57,6 +57,7 @@ class SdrFragment : Fragment() {
     override fun onViewCreated(view: View, s: Bundle?) {
         val out = view.findViewById<TextView>(R.id.sdr_out)
         view.findViewById<Button>(R.id.sdr_scan).setOnClickListener { out.text = scan() }
+        view.findViewById<Button>(R.id.sdr_copy).copyOnClick(out)
     }
 
     private fun scan(): String {

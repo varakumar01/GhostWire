@@ -33,6 +33,13 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Capture 5s" />
+
+        <Button
+            android:id="@+id/diag_copy"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Copy" />
     </LinearLayout>
 
     <com.google.android.material.card.MaterialCardView

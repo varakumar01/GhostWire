@@ -52,6 +52,7 @@ class WalkFragment : Fragment() {
         tm = requireContext().getSystemService(TelephonyManager::class.java)
         out = view.findViewById(R.id.walk_out)
         view.findViewById<Button>(R.id.walk_toggle).also { b -> b.setOnClickListener { toggle(b) } }
+        view.findViewById<Button>(R.id.walk_copy).copyOnClick(out)
     }
 
     override fun onDestroyView() {

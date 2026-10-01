@@ -32,6 +32,7 @@
             <Button android:id="@+id/recon_sim" style="?attr/materialButtonOutlinedStyle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SIM OSINT" />
             <Button android:id="@+id/recon_towers" style="?attr/materialButtonOutlinedStyle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Locate towers" />
             <Button android:id="@+id/recon_trace" style="?attr/materialButtonOutlinedStyle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Start trace" />
+            <Button android:id="@+id/recon_copy" style="?attr/materialButtonOutlinedStyle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Copy" />
         </LinearLayout>
     </HorizontalScrollView>
 

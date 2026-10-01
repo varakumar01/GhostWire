@@ -53,6 +53,7 @@ class GuardFragment : Fragment() {
                 out.post { out.text = r }
             }.start()
         }
+        view.findViewById<Button>(R.id.guard_copy).copyOnClick(out)
     }
 
     private fun scan(): String {

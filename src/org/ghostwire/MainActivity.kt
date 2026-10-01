@@ -19,6 +19,7 @@ class MainActivity : AppCompatActivity() {
         "SIM" to { SimFragment() },
         "DIAG" to { DiagFragment() },
         "SDR" to { SdrFragment() },
+        "Walrus" to { WalrusFragment() },
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -70,7 +70,7 @@ class WalrusFragment : Fragment() {
             it.adapter = adapter
         }
         view.findViewById<Button>(R.id.card_read).setOnClickListener { startCapture() }
-        view.findViewById<Button>(R.id.card_export).setOnClickListener { exportCards() }
+        view.findViewById<ImageButton>(R.id.card_share).setOnClickListener { exportCards() }
         view.findViewById<Button>(R.id.card_limits).setOnClickListener { showLimits() }
         updateStatus()
     }
@@ -157,10 +157,11 @@ class WalrusFragment : Fragment() {
         val send = Intent(Intent.ACTION_SEND).apply {
             type = "application/json"
             putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_TITLE, f.name)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        startActivity(Intent.createChooser(send, "Export cards"))
-        status.text = "exported ${cards.size} card(s) to ${f.absolutePath}"
+        startActivity(Intent.createChooser(send, "Share cards file"))
+        status.text = "shared ${cards.size} card(s) — ${f.name}"
     }
 
     private fun showLimits() {

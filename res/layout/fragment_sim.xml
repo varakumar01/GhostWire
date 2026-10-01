@@ -1,41 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
 
-    <LinearLayout
+    <TextView
+        android:id="@+id/sim_info"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:fontFamily="monospace"
+        android:textIsSelectable="true"
+        android:paddingBottom="8dp" />
 
-        <TextView
-            android:id="@+id/sim_info"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:fontFamily="monospace"
-            android:textIsSelectable="true"
-            android:paddingBottom="16dp" />
+    <TextView
+        android:id="@+id/sim_channel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:paddingBottom="8dp" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="APDU (hex, basic channel)"
-            android:paddingBottom="4dp" />
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none">
 
-        <EditText
-            android:id="@+id/apdu_in"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:fontFamily="monospace"
-            android:inputType="textNoSuggestions"
-            android:hint="00 A4 00 04 02 3F 00" />
-
-        <Button
-            android:id="@+id/apdu_send"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Send APDU" />
+            android:orientation="horizontal">
+
+            <Button android:id="@+id/p_openusim" style="?attr/materialButtonOutlinedStyle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Open USIM" />
+            <Button android:id="@+id/p_iccid" style="?attr/materialButtonOutlinedStyle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="ICCID" />
+            <Button android:id="@+id/p_imsi" style="?attr/materialButtonOutlinedStyle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="IMSI" />
+            <Button android:id="@+id/p_spn" style="?attr/materialButtonOutlinedStyle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SPN" />
+            <Button android:id="@+id/p_ad" style="?attr/materialButtonOutlinedStyle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="AD" />
+            <Button android:id="@+id/p_loci" style="?attr/materialButtonOutlinedStyle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="LOCI" />
+            <Button android:id="@+id/p_apps" style="?attr/materialButtonOutlinedStyle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Apps" />
+            <Button android:id="@+id/p_close" style="?attr/materialButtonOutlinedStyle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Close" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="APDU (hex)"
+        android:paddingTop="8dp"
+        android:paddingBottom="4dp" />
+
+    <EditText
+        android:id="@+id/apdu_in"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:inputType="textNoSuggestions"
+        android:hint="00 A4 00 04 02 3F 00" />
+
+    <Button
+        android:id="@+id/apdu_send"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Send APDU" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
         <TextView
             android:id="@+id/apdu_out"
@@ -44,5 +74,5 @@
             android:fontFamily="monospace"
             android:textIsSelectable="true"
             android:paddingTop="8dp" />
-    </LinearLayout>
-</ScrollView>
+    </ScrollView>
+</LinearLayout>

@@ -13,17 +13,25 @@ import androidx.fragment.app.Fragment
 /**
  * SIM lab: read the card's identifiers and send raw APDUs to it.
  *
- * The APDU console is the one low-level primitive — every higher-level SIM
- * test (EF reads, STK applet enumeration, OTA/DES key probing) is just a
- * sequence of APDUs composed on top of it, not a separate engine.
+ * The APDU console is the one low-level primitive; the preset buttons are just
+ * canned APDU sequences on top of it (SELECT + READ BINARY, EF_DIR walk, open a
+ * logical channel to the USIM). Every response is shown raw with its decoded
+ * status word so a failing step is debuggable, not silent.
  */
 class SimFragment : Fragment() {
+
+    private lateinit var session: SimSession
+    private lateinit var out: TextView
+    private lateinit var channelView: TextView
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, s: Bundle?): View =
         inflater.inflate(R.layout.fragment_sim, container, false)
 
     override fun onViewCreated(view: View, s: Bundle?) {
         val tm = requireContext().getSystemService(TelephonyManager::class.java)
+        session = SimSession(tm)
+        out = view.findViewById(R.id.apdu_out)
+        channelView = view.findViewById(R.id.sim_channel)
 
         view.findViewById<TextView>(R.id.sim_info).text = buildString {
             append("IMSI:     ").append(safe { tm.subscriberId }).append('\n')
@@ -31,34 +39,63 @@ class SimFragment : Fragment() {
             append("SPN:      ").append(safe { tm.simOperatorName }).append('\n')
             append("Operator: ").append(safe { tm.simOperator })
         }
+        updateChannel()
 
         val apduIn = view.findViewById<EditText>(R.id.apdu_in)
-        val apduOut = view.findViewById<TextView>(R.id.apdu_out)
         view.findViewById<Button>(R.id.apdu_send).setOnClickListener {
-            apduOut.text = runApdu(tm, apduIn.text.toString())
+            val hex = apduIn.text.toString()
+            run("APDU") {
+                val r = session.send(hex)
+                "${group(r)}\n${Sim.decodeSw(r)}"
+            }
         }
+
+        preset(view, R.id.p_openusim) { val a = session.openUsim(); updateChannel(); "USIM: ${a.aid} ${a.label}" }
+        preset(view, R.id.p_iccid) { "ICCID: ${Sim.decodeIccid(session.readTransparent(Sim.EF_ICCID))}" }
+        preset(view, R.id.p_imsi) { "IMSI: ${Sim.decodeImsi(session.readTransparent(Sim.EF_IMSI))}" }
+        preset(view, R.id.p_spn) { "SPN raw: ${group(session.readTransparent(Sim.EF_SPN))}" }
+        preset(view, R.id.p_ad) { "AD: ${group(session.readTransparent(Sim.EF_AD))}" }
+        preset(view, R.id.p_loci) { "LOCI: ${group(session.readTransparent(Sim.EF_LOCI))}" }
+        preset(view, R.id.p_apps) {
+            val apps = session.readDir()
+            if (apps.isEmpty()) "no applications in EF_DIR"
+            else apps.joinToString("\n") { "${it.aid}  ${it.label}" }
+        }
+        preset(view, R.id.p_close) { session.close(); updateChannel(); "channel closed" }
     }
 
-    /** Send one APDU on the basic channel. Input is hex, whitespace ignored. */
-    private fun runApdu(tm: TelephonyManager, hex: String): String {
-        val a = hex.filterNot { it.isWhitespace() }
-        if (a.length < 10 || a.length % 2 != 0) {
-            return "need an even-length hex string of at least 5 bytes: CLA INS P1 P2 P3"
-        }
-        return try {
-            val cla = a.substring(0, 2).toInt(16)
-            val ins = a.substring(2, 4).toInt(16)
-            val p1 = a.substring(4, 6).toInt(16)
-            val p2 = a.substring(6, 8).toInt(16)
-            val p3 = a.substring(8, 10).toInt(16)
-            val data = if (a.length > 10) a.substring(10) else ""
-            tm.iccTransmitApduBasicChannel(cla, ins, p1, p2, p3, data) ?: "(null response)"
-        } catch (e: NumberFormatException) {
-            "bad hex: ${e.message}"
-        } catch (e: Exception) {
-            "error: ${e.message}"
-        }
+    override fun onDestroyView() {
+        super.onDestroyView()
+        session.close()
     }
+
+    private fun preset(view: View, id: Int, action: () -> String) {
+        val b = view.findViewById<Button>(id)
+        b.setOnClickListener { run(b.text.toString(), action) }
+    }
+
+    /** Run an APDU action off the UI thread; APDU calls can be slow on some cards. */
+    private fun run(label: String, action: () -> String) {
+        out.text = "$label …"
+        Thread {
+            val result = try {
+                action()
+            } catch (e: ApduError) {
+                e.message ?: "APDU error"
+            } catch (e: Exception) {
+                "error: ${e.message}"
+            }
+            out.post { out.text = result }
+        }.start()
+    }
+
+    private fun updateChannel() {
+        channelView.text = "channel: ${session.channelLabel}"
+    }
+
+    /** Group a hex string into byte pairs for readability. */
+    private fun group(hex: String): String =
+        hex.filterNot { it.isWhitespace() }.chunked(2).joinToString(" ")
 
     private inline fun safe(block: () -> String?): String =
         try {

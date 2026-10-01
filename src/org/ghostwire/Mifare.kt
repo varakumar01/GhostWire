@@ -1,3 +1,22 @@
+/*
+ * Copyright 2026 Varakumar.
+ *
+ * This file is part of GhostWire.
+ *
+ * GhostWire is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * GhostWire is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with GhostWire.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package org.ghostwire
 
 import android.content.Context
@@ -25,17 +44,29 @@ object Mifare {
 
     fun userKeyFile(ctx: Context): File = File(ctx.getExternalFilesDir(null), "keys.txt")
 
-    /** Built-in keys plus any from the user's keys.txt (one 12-hex key per line, # comments). */
+    /**
+     * The full MIFARE Classic dictionary: built-in defaults, the bundled
+     * extended-std.keys asset (~2477 public keys), then the user's keys.txt.
+     * One 12-hex key per line, `#` comments; duplicates are de-duped in order.
+     */
     fun allKeys(ctx: Context): List<ByteArray> {
-        val hex = LinkedHashSet(BUILTIN_KEYS.map { it.uppercase() })
+        val hex = LinkedHashSet<String>()
+        BUILTIN_KEYS.forEach { hex.add(it.uppercase()) }
         runCatching {
-            val f = userKeyFile(ctx)
-            if (f.exists()) f.forEachLine { line ->
-                val k = line.substringBefore('#').trim().uppercase()
-                if (k.length == 12 && k.all { it in "0123456789ABCDEF" }) hex.add(k)
+            ctx.assets.open("extended-std.keys").bufferedReader().useLines { seq ->
+                seq.forEach { addKey(hex, it) }
             }
         }
+        runCatching {
+            val f = userKeyFile(ctx)
+            if (f.exists()) f.forEachLine { addKey(hex, it) }
+        }
         return hex.map { h -> ByteArray(6) { h.substring(it * 2, it * 2 + 2).toInt(16).toByte() } }
+    }
+
+    private fun addKey(set: MutableSet<String>, line: String) {
+        val k = line.substringBefore('#').trim().uppercase()
+        if (k.length == 12 && k.all { it in "0123456789ABCDEF" }) set.add(k)
     }
 
     /** Per-block access codes (C1<<2|C2<<1|C3) for the 4 block groups of a sector,

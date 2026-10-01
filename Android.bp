@@ -4,6 +4,7 @@ android_app {
     name: "GhostWire",
     srcs: ["src/**/*.kt"],
     resource_dirs: ["res"],
+    asset_dirs: ["assets"],
     manifest: "AndroidManifest.xml",
 
     // Builds against the system SDK so the app stays portable; platform

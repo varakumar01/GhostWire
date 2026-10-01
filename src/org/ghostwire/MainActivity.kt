@@ -17,6 +17,7 @@ class MainActivity : AppCompatActivity() {
 
     private val tabs: List<Pair<String, () -> Fragment>> = listOf(
         "SIM" to { SimFragment() },
+        "DIAG" to { DiagFragment() },
         "SDR" to { SdrFragment() },
     )
 

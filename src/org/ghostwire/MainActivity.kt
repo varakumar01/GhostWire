@@ -26,6 +26,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
@@ -64,6 +65,8 @@ class MainActivity : AppCompatActivity() {
     private var tabs: List<Pair<String, () -> Fragment>> = domains.values.first()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Dark is the default look; cream is the light (MODE_NIGHT_NO) variant.
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 

@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  PLACEHOLDER palette — final colors to be decided. Rebranding GhostWire is a
-  one-file edit: change these three tokens. The neutral slate/teal here echoes
-  Walrus's card-based look without committing to a scheme.
+  GhostWire palette — coral accent on cream (light) / dark. This file holds the
+  LIGHT (cream) values; res/values-night/colors.xml holds the dark ones. The app
+  defaults to dark (MainActivity forces night mode); cream is the light variant.
+  Rebranding = change gw_accent here and in values-night.
 -->
 <resources>
-    <color name="gw_primary">#2F3E4E</color>
-    <color name="gw_primary_dark">#1F2A35</color>
-    <color name="gw_accent">#19B5C4</color>
+    <color name="gw_accent">#F0502E</color>
+    <color name="gw_primary">#F0502E</color>
+    <color name="gw_primary_dark">#C63F20</color>
     <color name="gw_on_primary">#FFFFFF</color>
+    <color name="gw_bg">#F5F0E8</color>
+    <color name="gw_surface">#FFFFFF</color>
+    <color name="gw_on_surface">#1C1E22</color>
+    <color name="gw_muted">#6B6B6B</color>
 </resources>

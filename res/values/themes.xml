@@ -2,24 +2,31 @@
 <resources>
 
     <style name="Theme.GhostWire" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/gw_primary</item>
+        <item name="colorPrimary">@color/gw_accent</item>
         <item name="colorPrimaryVariant">@color/gw_primary_dark</item>
         <item name="colorOnPrimary">@color/gw_on_primary</item>
         <item name="colorSecondary">@color/gw_accent</item>
-        <item name="colorSecondaryVariant">@color/gw_accent</item>
+        <item name="colorSecondaryVariant">@color/gw_primary_dark</item>
+        <item name="colorSurface">@color/gw_surface</item>
+        <item name="colorOnSurface">@color/gw_on_surface</item>
+        <item name="android:colorBackground">@color/gw_bg</item>
+        <item name="android:windowBackground">@color/gw_bg</item>
+        <item name="colorControlNormal">@color/gw_on_surface</item>
     </style>
 
     <!-- Section title at the top of each tab. -->
     <style name="GhostWire.Header" parent="">
-        <item name="android:textSize">20sp</item>
+        <item name="android:textSize">22sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textColor">?attr/colorPrimary</item>
         <item name="android:paddingBottom">12dp</item>
     </style>
 
-    <!-- Card wrapping a tab's controls/output. -->
+    <!-- Rounded surface card wrapping a tab's controls/output. -->
     <style name="GhostWire.Card" parent="Widget.MaterialComponents.CardView">
-        <item name="cardCornerRadius">12dp</item>
+        <item name="cardCornerRadius">16dp</item>
+        <item name="cardBackgroundColor">?attr/colorSurface</item>
+        <item name="cardElevation">0dp</item>
         <item name="cardUseCompatPadding">true</item>
         <item name="contentPadding">16dp</item>
     </style>

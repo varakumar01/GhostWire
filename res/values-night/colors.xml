@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dark palette (the default look). Mirrors res/values/colors.xml token-for-token. -->
+<resources>
+    <color name="gw_accent">#F0502E</color>
+    <color name="gw_primary">#F0502E</color>
+    <color name="gw_primary_dark">#C63F20</color>
+    <color name="gw_on_primary">#FFFFFF</color>
+    <color name="gw_bg">#1C1E22</color>
+    <color name="gw_surface">#26292E</color>
+    <color name="gw_on_surface">#FFFFFF</color>
+    <color name="gw_muted">#9AA0A6</color>
+</resources>

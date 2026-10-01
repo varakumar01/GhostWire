@@ -191,28 +191,47 @@ object NfcCapture {
      * NDEF-writable and big enough. Never throws — a partial write is still
      * reported, not swallowed.
      */
-    fun write(tag: Tag, card: Card): String {
-        var wrote = 0
+    fun write(tag: Tag, card: Card, dict: List<ByteArray> = emptyList()): String {
+        var dataWrote = 0
+        var trailerWrote = 0
         var skipped = 0
         var failed = 0
+        var uidWrote = false
         val notes = StringBuilder()
 
         MifareClassic.get(tag)?.let { mc ->
             if (!runCatching { mc.connect() }.isSuccess) {
                 notes.append("MIFARE Classic: could not connect\n")
             } else {
-                for ((block, hex) in card.blocks.toSortedMap()) {
-                    if (Mifare.isTrailer(block)) { skipped++; continue }
-                    val sector = runCatching { mc.blockToSector(block) }.getOrNull()
-                    val keyHex = sector?.let { card.keys[it] }
-                    val key = keyHex?.let { runCatching { Mifare.hexToBytes(it.substring(2)) }.getOrNull() }
-                    val authed = sector != null && key != null && when (keyHex[0]) {
-                        'A' -> runCatching { mc.authenticateSectorWithKeyA(sector, key) }.getOrDefault(false)
-                        'B' -> runCatching { mc.authenticateSectorWithKeyB(sector, key) }.getOrDefault(false)
-                        else -> false
+                // Group the stored blocks by the target's own sector layout.
+                val bySector = card.blocks.keys.groupBy { runCatching { mc.blockToSector(it) }.getOrNull() }
+                for ((sector, blocksInSector) in bySector) {
+                    if (sector == null) { skipped += blocksInSector.size; continue }
+                    // Auth the TARGET: the source's recorded key first, then the
+                    // full dictionary (a blank target keeps default keys, not the
+                    // source's — the old code only tried the source key and so
+                    // skipped every non-default sector).
+                    if (!authTarget(mc, sector, card.keys[sector], dict)) {
+                        skipped += blocksInSector.size
+                        notes.append("sector $sector: target auth failed (no matching key)\n")
+                        continue
                     }
-                    if (!authed) { skipped++; continue }
-                    if (runCatching { mc.writeBlock(block, Mifare.hexToBytes(hex)) }.isSuccess) wrote++ else failed++
+                    val sorted = blocksInSector.sorted()
+                    // Data blocks first, then the trailer last so the new keys
+                    // don't invalidate the session before the data is written.
+                    for (block in sorted) {
+                        if (Mifare.isTrailer(block)) continue
+                        val data = card.blocks[block]?.let { runCatching { Mifare.hexToBytes(it) }.getOrNull() }
+                        if (data == null || data.size != 16) { failed++; continue }
+                        if (runCatching { mc.writeBlock(block, data) }.isSuccess) {
+                            dataWrote++
+                            if (block == 0) uidWrote = true // only succeeds on gen2 magic
+                        } else failed++
+                    }
+                    sorted.firstOrNull { Mifare.isTrailer(it) }?.let { tb ->
+                        val trailer = Mifare.buildTrailer(card.keys[sector], card.blocks[tb])
+                        if (runCatching { mc.writeBlock(tb, trailer) }.isSuccess) trailerWrote++ else failed++
+                    }
                 }
                 runCatching { mc.close() }
             }
@@ -224,7 +243,7 @@ object NfcCapture {
             } else {
                 for ((page, hex) in card.blocks.toSortedMap()) {
                     if (page < 4) { skipped++; continue } // UID/lock/OTP — never written
-                    if (runCatching { mu.writePage(page, Mifare.hexToBytes(hex)) }.isSuccess) wrote++ else failed++
+                    if (runCatching { mu.writePage(page, Mifare.hexToBytes(hex)) }.isSuccess) dataWrote++ else failed++
                 }
                 runCatching { mu.close() }
             }
@@ -246,8 +265,31 @@ object NfcCapture {
             }
         }
 
-        notes.append("wrote $wrote block(s), skipped $skipped (trailer/UID or no key), $failed failed")
+        notes.append("wrote $dataWrote data block(s), $trailerWrote trailer(s)/keys, skipped $skipped, $failed failed")
+        if (uidWrote) notes.append("\nUID block 0 written — gen2 magic card")
+        else if (card.blocks.containsKey(0) && failed > 0)
+            notes.append("\nUID block 0 not writable — needs a gen2 magic card (gen1a's 7-bit backdoor isn't reachable from phone NFC)")
         return notes.toString()
+    }
+
+    /** Authenticate [sector] on the target: the source's recorded key first,
+     *  then every key in [dict] (key A then key B). */
+    private fun authTarget(mc: MifareClassic, sector: Int, sourceKey: String?, dict: List<ByteArray>): Boolean {
+        sourceKey?.takeIf { it.length >= 14 }?.let { sk ->
+            runCatching { Mifare.hexToBytes(sk.substring(2)) }.getOrNull()?.let { kb ->
+                val ok = when (sk[0]) {
+                    'A' -> runCatching { mc.authenticateSectorWithKeyA(sector, kb) }.getOrDefault(false)
+                    'B' -> runCatching { mc.authenticateSectorWithKeyB(sector, kb) }.getOrDefault(false)
+                    else -> false
+                }
+                if (ok) return true
+            }
+        }
+        for (k in dict) {
+            if (runCatching { mc.authenticateSectorWithKeyA(sector, k) }.getOrDefault(false)) return true
+            if (runCatching { mc.authenticateSectorWithKeyB(sector, k) }.getOrDefault(false)) return true
+        }
+        return false
     }
 
     /** EMV contactless probe: SELECT PPSE, list the application AIDs. */

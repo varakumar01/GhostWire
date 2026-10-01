@@ -121,7 +121,7 @@ class WalrusFragment : Fragment() {
     private fun onTag(tag: Tag) {
         val target = writeTarget
         if (target != null) {
-            val result = runCatching { NfcCapture.write(tag, target) }
+            val result = runCatching { NfcCapture.write(tag, target, keys) }
                 .getOrElse { "write failed: ${it.message}" }
             activity?.runOnUiThread {
                 stopCapture()

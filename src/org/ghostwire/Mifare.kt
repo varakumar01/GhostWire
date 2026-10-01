@@ -125,6 +125,32 @@ object Mifare {
     fun isTrailer(block: Int): Boolean =
         if (block < 128) block % 4 == 3 else (block - 128) % 16 == 15
 
+    /**
+     * Build a 16-byte sector trailer that installs [sectorKeyHex] (the key this
+     * sector was cracked with, "A <hex>"/"B <hex>") as the clone's key, keeping
+     * the source trailer's access bits when they pass the integrity check (else
+     * the safe transport default FF 07 80 69). Key B is taken from the source
+     * trailer only when its access bits mark it readable; otherwise an unknown
+     * key half stays FFFFFFFFFFFF. Access bytes are always valid, so a trailer
+     * built here can't brick a sector.
+     */
+    fun buildTrailer(sectorKeyHex: String?, readTrailerHex: String?): ByteArray {
+        val read = readTrailerHex?.let { runCatching { hexToBytes(it) }.getOrNull() }?.takeIf { it.size == 16 }
+        val validRead = read?.takeIf { accessCodes(it) != null }
+        val access = validRead?.copyOfRange(6, 10)
+            ?: byteArrayOf(0xFF.toByte(), 0x07.toByte(), 0x80.toByte(), 0x69.toByte())
+        var keyA = ByteArray(6) { 0xFF.toByte() }
+        var keyB = ByteArray(6) { 0xFF.toByte() }
+        sectorKeyHex?.let { sk ->
+            if (sk.length >= 14) {
+                val kb = runCatching { hexToBytes(sk.substring(2)) }.getOrNull()
+                if (kb != null && kb.size == 6) if (sk[0] == 'A') keyA = kb else keyB = kb
+            }
+        }
+        validRead?.let { if (accessCodes(it)?.let { c -> keyBReadable(c[3]) } == true) keyB = it.copyOfRange(10, 16) }
+        return keyA + access + keyB
+    }
+
     fun hexToBytes(h: String): ByteArray =
         ByteArray(h.length / 2) { h.substring(it * 2, it * 2 + 2).toInt(16).toByte() }
 }

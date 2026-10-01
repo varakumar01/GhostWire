@@ -36,6 +36,14 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Share cards file" />
 
+        <ImageButton
+            android:id="@+id/card_import"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:src="@drawable/ic_import"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Import cards file" />
+
         <Button
             android:id="@+id/card_limits"
             style="?attr/materialButtonOutlinedStyle"

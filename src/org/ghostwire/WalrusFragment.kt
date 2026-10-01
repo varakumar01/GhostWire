@@ -21,6 +21,7 @@ package org.ghostwire
 
 import android.app.AlertDialog
 import android.content.Intent
+import android.net.Uri
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.os.Bundle
@@ -31,8 +32,10 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
+import org.json.JSONArray
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -54,6 +57,11 @@ class WalrusFragment : Fragment() {
     @Volatile private var capturing = false
     @Volatile private var writeTarget: Card? = null
 
+    private val importPicker =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            uri?.let { importFrom(it) }
+        }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, s: Bundle?): View =
         inflater.inflate(R.layout.fragment_walrus, container, false)
 
@@ -71,6 +79,9 @@ class WalrusFragment : Fragment() {
         }
         view.findViewById<Button>(R.id.card_read).setOnClickListener { startCapture() }
         view.findViewById<ImageButton>(R.id.card_share).setOnClickListener { exportCards() }
+        view.findViewById<ImageButton>(R.id.card_import).setOnClickListener {
+            importPicker.launch(arrayOf("*/*"))
+        }
         view.findViewById<Button>(R.id.card_limits).setOnClickListener { showLimits() }
         updateStatus()
     }
@@ -162,6 +173,30 @@ class WalrusFragment : Fragment() {
         }
         startActivity(Intent.createChooser(send, "Share cards file"))
         status.text = "shared ${cards.size} card(s) — ${f.name}"
+    }
+
+    /** Merge a previously exported cards JSON into the wallet, skipping cards
+     *  whose id is already present. */
+    private fun importFrom(uri: Uri) {
+        val text = runCatching {
+            requireContext().contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+        }.getOrNull()
+        val imported = text?.let {
+            runCatching {
+                val arr = JSONArray(it)
+                List(arr.length()) { i -> Card.fromJson(arr.getJSONObject(i)) }
+            }.getOrNull()
+        }
+        if (imported == null) {
+            status.text = "import failed — not a valid cards file"
+            return
+        }
+        val existing = cards.mapTo(HashSet()) { it.id }
+        var added = 0
+        imported.forEach { if (existing.add(it.id)) { cards.add(it); added++ } }
+        store.save(cards)
+        adapter.notifyDataSetChanged()
+        status.text = "imported $added new card(s)"
     }
 
     private fun showLimits() {

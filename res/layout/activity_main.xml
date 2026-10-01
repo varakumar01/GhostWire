@@ -7,18 +7,28 @@
     android:layout_height="match_parent"
     android:fitsSystemWindows="true">
 
-    <!-- Main content: a fixed tab row (pinned ☰ + scrollable tabs) over the pager. -->
+    <!-- Content: pager fills, nav lives in the bottom bar. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
 
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/pager"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- Bottom bar: separate menu button at the start, scrollable tab pills. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:background="?attr/colorPrimary">
+            android:background="?attr/colorSurface"
+            android:elevation="8dp"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp">
 
             <ImageButton
                 android:id="@+id/open_domains"
@@ -26,25 +36,16 @@
                 android:layout_height="48dp"
                 android:src="@drawable/ic_menu"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                app:tint="@color/gw_on_primary"
+                app:tint="?attr/colorPrimary"
                 android:contentDescription="Domains" />
 
             <com.google.android.material.tabs.TabLayout
                 android:id="@+id/tabs"
+                style="@style/GhostWire.TabPill"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                app:tabMode="scrollable"
-                app:tabTextColor="@color/gw_on_primary"
-                app:tabSelectedTextColor="@color/gw_on_primary"
-                app:tabIndicatorColor="@color/gw_accent" />
+                android:layout_weight="1" />
         </LinearLayout>
-
-        <androidx.viewpager2.widget.ViewPager2
-            android:id="@+id/pager"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
     </LinearLayout>
 
     <com.google.android.material.navigation.NavigationView

@@ -31,4 +31,21 @@
         <item name="contentPadding">16dp</item>
     </style>
 
+    <!-- Bottom tab pills: accent-filled pill behind the selected label, muted
+         unselected text, scrollable. -->
+    <style name="GhostWire.TabPill" parent="Widget.MaterialComponents.TabLayout">
+        <item name="tabMode">scrollable</item>
+        <item name="tabGravity">center</item>
+        <item name="tabTextColor">@color/gw_muted</item>
+        <item name="tabSelectedTextColor">@color/gw_on_primary</item>
+        <item name="tabIndicator">@drawable/tab_pill_indicator</item>
+        <item name="tabIndicatorColor">?attr/colorPrimary</item>
+        <item name="tabIndicatorGravity">stretch</item>
+        <item name="tabIndicatorFullWidth">false</item>
+        <item name="tabPaddingStart">16dp</item>
+        <item name="tabPaddingEnd">16dp</item>
+        <item name="tabRippleColor">@null</item>
+        <item name="android:background">@null</item>
+    </style>
+
 </resources>

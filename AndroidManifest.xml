@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="org.ghostwire"
+          android:versionCode="1"
+          android:versionName="0.1">
+
+    <!-- SIM lab: EF reads + raw APDU. iccTransmitApdu*/getSubscriberId are gated
+         by MODIFY_PHONE_STATE / READ_PRIVILEGED_PHONE_STATE, granted to this
+         privileged platform-signed app via privapp-permissions-ghostwire.xml. -->
+    <uses-permission android:name="android.permission.MODIFY_PHONE_STATE" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.READ_PRIVILEGED_PHONE_STATE" />
+    <!-- SDR tab: enumerate USB-OTG front-ends. -->
+    <uses-permission android:name="android.permission.MANAGE_USB" />
+    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+
+    <application
+        android:label="@string/app_name"
+        android:theme="@style/Theme.GhostWire"
+        android:supportsRtl="true">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

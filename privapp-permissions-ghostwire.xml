@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<permissions>
+    <privapp-permissions package="org.ghostwire">
+        <!-- SIM lab: raw APDU + privileged SIM identifiers. -->
+        <permission name="android.permission.MODIFY_PHONE_STATE" />
+        <permission name="android.permission.READ_PHONE_STATE" />
+        <permission name="android.permission.READ_PRIVILEGED_PHONE_STATE" />
+        <!-- SDR tab: manage/enumerate USB-OTG devices. -->
+        <permission name="android.permission.MANAGE_USB" />
+    </privapp-permissions>
+</permissions>

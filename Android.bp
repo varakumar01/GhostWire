@@ -1,0 +1,23 @@
+// GhostWire — independent, self-contained pentest app.
+// Included in a ROM via its own ghostwire.mk; not tied to any device tree.
+android_app {
+    name: "GhostWire",
+    srcs: ["src/**/*.kt"],
+    resource_dirs: ["res"],
+    manifest: "AndroidManifest.xml",
+
+    // Builds against the system SDK so the app stays portable; platform
+    // certificate + privileged install are what grant it the telephony/USB
+    // permissions its privapp allowlist requests.
+    sdk_version: "system_current",
+    certificate: "platform",
+    privileged: true,
+    system_ext_specific: true,
+
+    static_libs: [
+        "androidx.appcompat_appcompat",
+        "androidx.fragment_fragment",
+        "androidx.viewpager2_viewpager2",
+        "com.google.android.material_material",
+    ],
+}

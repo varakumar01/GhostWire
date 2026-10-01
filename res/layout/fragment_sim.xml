@@ -6,19 +6,36 @@
     android:padding="16dp">
 
     <TextView
-        android:id="@+id/sim_info"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:fontFamily="monospace"
-        android:textIsSelectable="true"
-        android:paddingBottom="8dp" />
+        android:text="SIM Lab"
+        style="@style/GhostWire.Header" />
 
-    <TextView
-        android:id="@+id/sim_channel"
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:fontFamily="monospace"
-        android:paddingBottom="8dp" />
+        style="@style/GhostWire.Card">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/sim_info"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textIsSelectable="true"
+                android:paddingBottom="8dp" />
+
+            <TextView
+                android:id="@+id/sim_channel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
     <HorizontalScrollView
         android:layout_width="match_parent"
@@ -41,13 +58,6 @@
         </LinearLayout>
     </HorizontalScrollView>
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="APDU (hex)"
-        android:paddingTop="8dp"
-        android:paddingBottom="4dp" />
-
     <EditText
         android:id="@+id/apdu_in"
         android:layout_width="match_parent"
@@ -62,17 +72,22 @@
         android:layout_height="wrap_content"
         android:text="Send APDU" />
 
-    <ScrollView
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        style="@style/GhostWire.Card">
 
-        <TextView
-            android:id="@+id/apdu_out"
+        <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:fontFamily="monospace"
-            android:textIsSelectable="true"
-            android:paddingTop="8dp" />
-    </ScrollView>
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/apdu_out"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textIsSelectable="true" />
+        </ScrollView>
+    </com.google.android.material.card.MaterialCardView>
 </LinearLayout>

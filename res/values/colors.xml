@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PLACEHOLDER palette — final colors to be decided. Rebranding GhostWire is a
+  one-file edit: change these three tokens. The neutral slate/teal here echoes
+  Walrus's card-based look without committing to a scheme.
+-->
+<resources>
+    <color name="gw_primary">#2F3E4E</color>
+    <color name="gw_primary_dark">#1F2A35</color>
+    <color name="gw_accent">#19B5C4</color>
+    <color name="gw_on_primary">#FFFFFF</color>
+</resources>

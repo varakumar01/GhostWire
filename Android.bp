@@ -19,6 +19,7 @@ android_app {
         "androidx.appcompat_appcompat",
         "androidx.fragment_fragment",
         "androidx.viewpager2_viewpager2",
+        "androidx.recyclerview_recyclerview",
         "com.google.android.material_material",
     ],
 }

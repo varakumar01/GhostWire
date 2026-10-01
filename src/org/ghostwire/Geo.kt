@@ -42,4 +42,38 @@ object Geo {
         "GSM" -> (ta * 553.6).roundToInt()
         else -> null // NR/UMTS TA not exposed as a simple linear unit here
     }
+
+    data class LocatedTower(val lat: Double, val lon: Double, val dbm: Int)
+    data class Estimate(val lat: Double, val lon: Double, val towers: Int, val spreadM: Int)
+
+    /**
+     * Weighted-centroid position estimate from several OSINT-located towers.
+     * Weight rises with signal strength in the dB domain, so the nearest few
+     * towers pull hardest without any single one swamping the rest. The
+     * reported spread (widest tower-to-tower gap) is a rough geometry/confidence
+     * hint — a tight cluster can't pin position well.
+     * ponytail: dB-weighted centroid; upgrade to range-based least-squares
+     * trilateration if accuracy matters (needs reliable per-tower distances).
+     */
+    fun estimatePosition(towers: List<LocatedTower>): Estimate? {
+        if (towers.size < 2) return null
+        val minDbm = towers.minOf { it.dbm }
+        var sumW = 0.0
+        var sumLat = 0.0
+        var sumLon = 0.0
+        for (t in towers) {
+            val w = (t.dbm - minDbm + 1).toDouble() // >=1; stronger signal = larger weight
+            sumW += w
+            sumLat += w * t.lat
+            sumLon += w * t.lon
+        }
+        var spread = 0.0
+        for (i in towers.indices) for (j in i + 1 until towers.size) {
+            spread = maxOf(
+                spread,
+                haversineMeters(towers[i].lat, towers[i].lon, towers[j].lat, towers[j].lon)
+            )
+        }
+        return Estimate(sumLat / sumW, sumLon / sumW, towers.size, spread.toInt())
+    }
 }

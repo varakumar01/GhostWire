@@ -110,12 +110,14 @@ class ReconFragment : Fragment() {
         if (here != null) sb.append("you: ${fmt(here.latitude)}, ${fmt(here.longitude)}\n\n")
         else sb.append("your GPS fix unavailable — distance/bearing will be skipped\n\n")
 
+        val located = ArrayList<Geo.LocatedTower>()
         for (c in cells) {
             sb.append("${c.rat} ${c.mcc}/${c.mnc} LAC ${c.lac} CID ${c.cid}  ${c.dbm} dBm\n")
             // Timing-advance distance, independent of OSINT:
             c.ta?.let { Geo.taDistanceMeters(c.rat, it)?.let { d -> sb.append("  TA distance ~${d} m\n") } }
             val r = CellDb.lookup(key, c)
             r.onSuccess { t ->
+                located.add(Geo.LocatedTower(t.lat, t.lon, c.dbm))
                 sb.append("  tower: ${fmt(t.lat)}, ${fmt(t.lon)}")
                 if (t.rangeM >= 0) sb.append("  (range ${t.rangeM} m, ${t.samples} samples)")
                 sb.append('\n')
@@ -128,6 +130,18 @@ class ReconFragment : Fragment() {
             }.onFailure { sb.append("  OSINT: ${it.message}\n") }
             sb.append('\n')
         }
+
+        val est = Geo.estimatePosition(located)
+        if (est != null) {
+            sb.append("estimated position (${est.towers} towers, spread ${est.spreadM} m): " +
+                "${fmt(est.lat)}, ${fmt(est.lon)}\n")
+            if (here != null) sb.append("  error vs GPS: " +
+                "${Geo.haversineMeters(here.latitude, here.longitude, est.lat, est.lon).toInt()} m\n")
+            sb.append("  map: geo:${est.lat},${est.lon}\n")
+        } else if (located.size < 2) {
+            sb.append("(need 2+ located towers for a position estimate)\n")
+        }
+
         return sb.toString()
     }
 

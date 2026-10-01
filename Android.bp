@@ -15,6 +15,7 @@ android_app {
     system_ext_specific: true,
 
     static_libs: [
+        "androidx.core_core",
         "androidx.appcompat_appcompat",
         "androidx.fragment_fragment",
         "androidx.viewpager2_viewpager2",

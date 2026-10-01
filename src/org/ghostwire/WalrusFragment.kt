@@ -29,11 +29,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.TextView
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import java.util.UUID
 
 /**
  * Contactless lab: read a card with the phone's NFC, store it, browse the
@@ -183,81 +186,75 @@ class WalrusFragment : Fragment() {
             .show()
     }
 
-    private fun detailText(card: Card): String {
+    /** Read-only header: identity + protocol findings. The raw block values go
+     *  in the editable field below, so they're not duplicated here. */
+    private fun summaryText(card: Card): String {
         val sb = StringBuilder()
         sb.append("Type:  ${card.typeLabel}\n")
-        sb.append("UID:   ${card.uid}\n")
-        card.atqa?.let { sb.append("ATQA:  $it\n") }
-        card.sak?.let { sb.append("SAK:   $it\n") }
-        card.ats?.let { sb.append("ATS/hist: $it\n") }
-        sb.append("Tech:  ${card.techList.joinToString(", ")}\n")
-        if (card.ndef.isNotEmpty()) {
-            sb.append("\nNDEF:\n")
-            card.ndef.forEach { sb.append("  $it\n") }
-        }
-        if (card.extra.isNotEmpty()) {
-            sb.append("\nProtocol data:\n")
-            card.extra.forEach { sb.append("  $it\n") }
-        }
-        if (card.keys.isNotEmpty()) {
-            sb.append("\nKeys found (${card.keys.size} sectors):\n")
-            card.keys.toSortedMap().forEach { (s, k) -> sb.append("  sector %2d: %s\n".format(s, k)) }
-        }
-        if (card.blocks.isNotEmpty()) {
-            sb.append("\nBlocks (${card.blocks.size} read):\n")
-            card.blocks.toSortedMap().forEach { (b, hex) ->
-                sb.append("  %3d: %s".format(b, hex))
-                val bytes = runCatching { Mifare.hexToBytes(hex) }.getOrNull()
-                if (bytes != null && card.techList.contains("MifareClassic")) {
-                    if (Mifare.isTrailer(b)) {
-                        Mifare.accessCodes(bytes)?.let { c ->
-                            sb.append("  [trailer] d0:${Mifare.dataBlockAccess(c[0])}")
-                            sb.append(if (Mifare.keyBReadable(c[3])) "; keyB readable" else "; keyB protected")
-                        }
-                    } else {
-                        Mifare.valueOf(bytes)?.let { sb.append("  [value=$it]") }
-                    }
-                }
-                sb.append('\n')
-            }
-        }
+        sb.append("UID:   ${card.uid}")
+        card.atqa?.let { sb.append("\nATQA:  $it") }
+        card.sak?.let { sb.append("\nSAK:   $it") }
+        card.ats?.let { sb.append("\nATS/hist: $it") }
+        sb.append("\nTech:  ${card.techList.joinToString(", ")}")
+        if (card.keys.isNotEmpty()) sb.append("\nKeys:  ${card.keys.size} sector(s) recovered")
+        if (card.ndef.isNotEmpty()) { sb.append("\nNDEF:"); card.ndef.forEach { sb.append("\n  $it") } }
+        if (card.extra.isNotEmpty()) card.extra.forEach { sb.append("\n  $it") }
         return sb.toString()
     }
 
-    /** Card detail/edit dialog: editable name + notes, a copy button on the
-     *  read-only technical dump, and a write-to-tag action. */
+    private fun blocksToText(card: Card): String =
+        card.blocks.toSortedMap().entries.joinToString("\n") { (b, hex) -> "$b $hex" }
+
+    /** Parse the editable "<block> <hex>" lines back into a block map, dropping
+     *  lines that aren't a block number + even-length hex payload. */
+    private fun parseBlocks(text: String): Map<Int, String> {
+        val out = LinkedHashMap<Int, String>()
+        text.lines().forEach { line ->
+            val sp = line.trim().split(Regex("\\s+"), limit = 2)
+            val b = sp[0].toIntOrNull() ?: return@forEach
+            val hex = sp.getOrNull(1)?.replace(" ", "")?.uppercase() ?: return@forEach
+            if (hex.isNotEmpty() && hex.length % 2 == 0 && hex.all { it in "0123456789ABCDEF" }) out[b] = hex
+        }
+        return out
+    }
+
+    /** Card detail/edit dialog: editable name + raw block values, with
+     *  save / delete / duplicate grouped next to close in the top bar. */
     private fun showDetail(card: Card) {
         val view = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_card_detail, null)
         val nameField = view.findViewById<EditText>(R.id.detail_name)
-        val notesField = view.findViewById<EditText>(R.id.detail_notes)
-        val info = view.findViewById<TextView>(R.id.detail_info)
+        val blocksField = view.findViewById<EditText>(R.id.detail_blocks)
+        view.findViewById<TextView>(R.id.detail_info).text = summaryText(card)
         nameField.setText(card.name)
-        notesField.setText(card.notes)
-        info.text = detailText(card)
+        blocksField.setText(blocksToText(card))
 
-        val dialog = AlertDialog.Builder(requireContext())
-            .setView(view)
-            .setNegativeButton("Close", null)
-            .create()
+        val dialog = MaterialAlertDialogBuilder(requireContext()).setView(view).create()
 
-        view.findViewById<Button>(R.id.detail_copy).copyOnClick(info)
-        view.findViewById<Button>(R.id.detail_save).setOnClickListener {
+        view.findViewById<ImageButton>(R.id.detail_close).setOnClickListener { dialog.dismiss() }
+        view.findViewById<ImageButton>(R.id.detail_save).setOnClickListener {
             card.name = nameField.text.toString().ifBlank { card.name }
-            card.notes = notesField.text.toString()
+            card.blocks = parseBlocks(blocksField.text.toString())
             store.save(cards)
             adapter.notifyDataSetChanged()
             dialog.dismiss()
         }
-        view.findViewById<Button>(R.id.detail_delete).setOnClickListener {
+        view.findViewById<ImageButton>(R.id.detail_delete).setOnClickListener {
             cards.remove(card)
             store.save(cards)
             adapter.notifyDataSetChanged()
             updateStatus()
             dialog.dismiss()
         }
-        view.findViewById<Button>(R.id.detail_write).setOnClickListener {
+        view.findViewById<ImageButton>(R.id.detail_duplicate).setOnClickListener {
+            cards.add(0, card.copy(
+                id = UUID.randomUUID().toString(),
+                name = "${card.name} (copy)",
+                timestamp = System.currentTimeMillis(),
+            ))
+            store.save(cards)
+            adapter.notifyDataSetChanged()
+            updateStatus()
             dialog.dismiss()
-            startWrite(card)
         }
         dialog.show()
     }

@@ -1,96 +1,95 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Fixed top bar + name + summary; only the block-values field scrolls, and
+     its bounded height keeps the dialog from filling the screen. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="20dp">
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Card name">
+        <ImageButton
+            android:id="@+id/detail_close"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_close"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Close" />
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/detail_name"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-        </com.google.android.material.textfield.TextInputLayout>
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
 
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            style="@style/GhostWire.Card">
+        <ImageButton
+            android:id="@+id/detail_duplicate"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_duplicate"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Duplicate" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
+        <ImageButton
+            android:id="@+id/detail_save"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_save"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Save" />
 
-                <TextView
-                    android:id="@+id/detail_info"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="monospace"
-                    android:textIsSelectable="true" />
-
-                <Button
-                    android:id="@+id/detail_copy"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="end"
-                    android:layout_marginTop="4dp"
-                    android:text="Copy" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:hint="Notes">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/detail_notes"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textMultiLine"
-                android:minLines="2" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:orientation="horizontal"
-            android:gravity="end">
-
-            <Button
-                android:id="@+id/detail_delete"
-                style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Delete" />
-
-            <Button
-                android:id="@+id/detail_write"
-                style="?attr/materialButtonOutlinedStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="Write to tag" />
-
-            <Button
-                android:id="@+id/detail_save"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="Save" />
-        </LinearLayout>
+        <ImageButton
+            android:id="@+id/detail_delete"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_delete"
+            app:tint="#E53935"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Delete" />
     </LinearLayout>
-</ScrollView>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Card name">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/detail_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <TextView
+        android:id="@+id/detail_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:fontFamily="monospace"
+        android:textSize="12sp"
+        android:textIsSelectable="true" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Values (editable — &quot;block hex&quot; per line)"
+        android:textStyle="bold" />
+
+    <EditText
+        android:id="@+id/detail_blocks"
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:layout_marginTop="4dp"
+        android:gravity="top"
+        android:inputType="textMultiLine|textNoSuggestions"
+        android:fontFamily="monospace"
+        android:textSize="12sp"
+        android:scrollbars="vertical"
+        android:overScrollMode="always"
+        android:importantForAutofill="no" />
+</LinearLayout>

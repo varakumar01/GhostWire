@@ -37,7 +37,8 @@ data class Card(
     val sak: String?,
     val ats: String?,
     val typeLabel: String,
-    val blocks: Map<Int, String>,
+    var blocks: Map<Int, String>, // editable in the detail dialog
+
     val ndef: List<String>,
     val keys: Map<Int, String> = emptyMap(), // sector -> "A <hex>" / "B <hex>" found
     val extra: List<String> = emptyList(),   // protocol-specific findings (EMV/DESFire/FeliCa/…)

@@ -19,6 +19,9 @@
 
 package org.ghostwire
 
+import android.content.Intent
+import android.nfc.NfcAdapter
+import android.nfc.Tag
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageButton
@@ -80,6 +83,34 @@ class MainActivity : AppCompatActivity() {
             }
         }
         showDomain(domains.keys.first())
+        handleTagIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleTagIntent(intent)
+    }
+
+    /** Capture a tag the OS dispatched to us (even from closed), but only while
+     *  auto-scan is on. Saved straight to the store; the Walrus tab reloads it. */
+    private fun handleTagIntent(intent: Intent?) {
+        val action = intent?.action ?: return
+        if (action != NfcAdapter.ACTION_TECH_DISCOVERED &&
+            action != NfcAdapter.ACTION_TAG_DISCOVERED &&
+            action != NfcAdapter.ACTION_NDEF_DISCOVERED
+        ) return
+        if (!AutoScanService.isEnabled(this)) return
+        @Suppress("DEPRECATION")
+        val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG) ?: return
+        Thread {
+            val card = runCatching { NfcCapture.read(tag, Mifare.allKeys(this)) }.getOrNull()
+                ?: return@Thread
+            val store = CardStore(this)
+            val list = store.load()
+            list.add(0, card)
+            store.save(list)
+        }.start()
     }
 
     override fun onBackPressed() {

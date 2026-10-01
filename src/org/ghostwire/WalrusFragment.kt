@@ -19,10 +19,12 @@
 
 package org.ghostwire
 
+import android.Manifest
 import android.app.AlertDialog
 import android.content.Intent
 import android.net.Uri
 import android.nfc.NfcAdapter
+import android.os.Build
 import android.nfc.Tag
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -39,6 +41,7 @@ import org.json.JSONArray
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.switchmaterial.SwitchMaterial
 import java.util.UUID
 
 /**
@@ -62,6 +65,11 @@ class WalrusFragment : Fragment() {
             uri?.let { importFrom(it) }
         }
 
+    private val notifPerm =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
+    private fun autoScan() = AutoScanService.isEnabled(requireContext())
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, s: Bundle?): View =
         inflater.inflate(R.layout.fragment_walrus, container, false)
 
@@ -83,7 +91,27 @@ class WalrusFragment : Fragment() {
             importPicker.launch(arrayOf("*/*"))
         }
         view.findViewById<Button>(R.id.card_limits).setOnClickListener { showLimits() }
+        view.findViewById<SwitchMaterial>(R.id.auto_scan).also { sw ->
+            sw.isChecked = autoScan()
+            sw.setOnCheckedChangeListener { _, on ->
+                if (on) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                        notifPerm.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    AutoScanService.start(requireContext())
+                    startCapture()
+                } else {
+                    AutoScanService.stop(requireContext())
+                    stopCapture()
+                    updateStatus()
+                }
+            }
+        }
         updateStatus()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (autoScan()) startCapture() // re-arm reader mode on return to foreground
     }
 
     override fun onPause() {
@@ -137,6 +165,7 @@ class WalrusFragment : Fragment() {
             activity?.runOnUiThread {
                 stopCapture()
                 status.text = result
+                if (autoScan()) startCapture() // back to reading
             }
             return
         }
@@ -144,7 +173,8 @@ class WalrusFragment : Fragment() {
             NfcCapture.read(tag, keys) { msg -> activity?.runOnUiThread { status.text = msg } }
         }.getOrNull()
         activity?.runOnUiThread {
-            stopCapture()
+            // When auto-scan is on, leave reader mode armed so taps chain.
+            if (!autoScan()) stopCapture()
             if (card != null) {
                 cards.add(0, card)
                 store.save(cards)
@@ -152,7 +182,7 @@ class WalrusFragment : Fragment() {
                 status.text = if (card.keys.isNotEmpty())
                     "saved — recovered ${card.keys.size} sector key(s) from the dictionary"
                 else "${cards.size} card(s) saved"
-            } else {
+            } else if (!autoScan()) {
                 updateStatus()
             }
         }
